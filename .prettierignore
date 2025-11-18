@@ -1,0 +1,10 @@
+node_modules
+build
+dist
+coverage
+.vscode
+.packages
+*.min.js
+yarn.lock
+pnpm-lock.yaml
+package-lock.json
