@@ -43,36 +43,122 @@ const TableNode: FC<TableNodeProps> = ({ data }) => {
                     : 'none',
               }}
             >
-              {/* Left handle for foreign keys (source) */}
+              {/* Left side handles */}
               {field.isForeign && (
-                <Handle
-                  type="source"
-                  position={Position.Right}
-                  id={`${data.id}-${field.name}-source`}
-                  style={{
-                    right: -8,
-                    width: 10,
-                    height: 10,
-                    background: '#ff7a45',
-                    border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
-                  }}
-                />
+                <>
+                  <Handle
+                    type="source"
+                    position={Position.Left}
+                    id={`${data.id}-${field.name}-source-left`}
+                    style={{
+                      left: -8,
+                      width: 10,
+                      height: 10,
+                      background: '#ff7a45',
+                      border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
+                    }}
+                  />
+                  <Handle
+                    type="target"
+                    position={Position.Left}
+                    id={`${data.id}-${field.name}-target-left`}
+                    style={{
+                      left: -8,
+                      width: 10,
+                      height: 10,
+                      background: '#ff7a45',
+                      border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
+                    }}
+                  />
+                </>
               )}
 
-              {/* Right handle for primary keys (target) */}
               {field.isPrimary && (
-                <Handle
-                  type="target"
-                  position={Position.Left}
-                  id={`${data.id}-${field.name}-target`}
-                  style={{
-                    left: -8,
-                    width: 10,
-                    height: 10,
-                    background: '#1890ff',
-                    border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
-                  }}
-                />
+                <>
+                  <Handle
+                    type="target"
+                    position={Position.Left}
+                    id={`${data.id}-${field.name}-target-left`}
+                    style={{
+                      left: -8,
+                      width: 10,
+                      height: 10,
+                      background: '#1890ff',
+                      border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
+                    }}
+                  />
+                  <Handle
+                    type="source"
+                    position={Position.Left}
+                    id={`${data.id}-${field.name}-source-left`}
+                    style={{
+                      left: -8,
+                      width: 10,
+                      height: 10,
+                      background: '#1890ff',
+                      border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
+                    }}
+                  />
+                </>
+              )}
+
+              {/* Right side handles */}
+              {field.isForeign && (
+                <>
+                  <Handle
+                    type="source"
+                    position={Position.Right}
+                    id={`${data.id}-${field.name}-source-right`}
+                    style={{
+                      right: -8,
+                      width: 10,
+                      height: 10,
+                      background: '#ff7a45',
+                      border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
+                    }}
+                  />
+                  <Handle
+                    type="target"
+                    position={Position.Right}
+                    id={`${data.id}-${field.name}-target-right`}
+                    style={{
+                      right: -8,
+                      width: 10,
+                      height: 10,
+                      background: '#ff7a45',
+                      border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
+                    }}
+                  />
+                </>
+              )}
+
+              {field.isPrimary && (
+                <>
+                  <Handle
+                    type="target"
+                    position={Position.Right}
+                    id={`${data.id}-${field.name}-target-right`}
+                    style={{
+                      right: -8,
+                      width: 10,
+                      height: 10,
+                      background: '#1890ff',
+                      border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
+                    }}
+                  />
+                  <Handle
+                    type="source"
+                    position={Position.Right}
+                    id={`${data.id}-${field.name}-source-right`}
+                    style={{
+                      right: -8,
+                      width: 10,
+                      height: 10,
+                      background: '#1890ff',
+                      border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
+                    }}
+                  />
+                </>
               )}
 
               <Flex justify="space-between" align="center" gap={8}>

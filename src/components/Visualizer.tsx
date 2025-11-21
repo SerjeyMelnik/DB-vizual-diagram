@@ -9,9 +9,10 @@ import {
   Position,
   type Node,
   type Edge,
+  type NodeChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useEffect, useMemo, type FC } from 'react';
+import { useEffect, useMemo, useCallback, type FC } from 'react';
 import type { Table, Relation } from '../types';
 import TableNode from './TableNode';
 import { useTheme } from '../contexts/ThemeContext';
@@ -28,6 +29,44 @@ type TableNode = Node & {
 const nodeTypes = {
   table: TableNode,
 };
+
+// Helper function to determine the best handle position based on node positions
+const getOptimalHandles = (
+  sourceNode: TableNode | undefined,
+  targetNode: TableNode | undefined,
+  fromField: string,
+  toField: string,
+): { sourceHandle: string; targetHandle: string } => {
+  if (!sourceNode || !targetNode) {
+    // Fallback to default right-to-left
+    return {
+      sourceHandle: `${sourceNode?.id}-${fromField}-source-right`,
+      targetHandle: `${targetNode?.id}-${toField}-target-left`,
+    };
+  }
+
+  const sourceX = sourceNode.position.x;
+  const targetX = targetNode.position.x;
+
+  // Determine if target is to the right or left of source
+  const isTargetOnRight = targetX > sourceX;
+
+  if (isTargetOnRight) {
+    // Target is on the right: connect from source's right to target's left
+    return {
+      sourceHandle: `${sourceNode.id}-${fromField}-source-right`,
+      targetHandle: `${targetNode.id}-${toField}-target-left`,
+    };
+  } else {
+    // Target is on the left: connect from source's left to target's right
+    return {
+      sourceHandle: `${sourceNode.id}-${fromField}-source-left`,
+      targetHandle: `${targetNode.id}-${toField}-target-right`,
+    };
+  }
+};
+const getNodesMap = (nodes: TableNode[]) => new Map(nodes.map((node) => [node.id, node]));
+
 const Visualizer: FC<VisualizerProps> = ({ relations, tables }) => {
   const { theme } = useTheme();
 
@@ -44,36 +83,73 @@ const Visualizer: FC<VisualizerProps> = ({ relations, tables }) => {
     [tables],
   );
 
-  const initialEdges: Edge[] = useMemo(
-    () =>
-      relations.map((relation, index) => ({
-        id: `edge-${relation.from}-${relation.to}-${index}`,
-        source: relation.from,
-        target: relation.to,
-        sourceHandle: `${relation.from}-${relation.fromField}-source`,
-        targetHandle: `${relation.to}-${relation.toField}-target`,
-        label: relation.name,
-        type: 'smoothstep',
-        animated: true,
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          width: 20,
-          height: 20,
-        },
-        style: { stroke: '#1890ff', strokeWidth: 2 },
-        labelStyle: { fontSize: 12, fill: '#666' },
-        labelBgStyle: { fill: '#fff', fillOpacity: 0.8 },
-      })),
-    [relations],
+  const [nodes, setNodes, onNodesChange] = useNodesState<TableNode>(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+
+  const nodesMap = useMemo(() => getNodesMap(nodes), [nodes]);
+
+  // Function to update edges based on current node positions
+  const updateEdgesBasedOnNodePositions = useCallback(
+    (currentNodes: Map<string, TableNode>) => {
+      const updatedEdges = relations.map((relation, index) => {
+        const sourceNode = currentNodes.get(relation.from);
+        const targetNode = currentNodes.get(relation.to);
+
+        const { sourceHandle, targetHandle } = getOptimalHandles(
+          sourceNode,
+          targetNode,
+          relation.fromField,
+          relation.toField,
+        );
+
+        return {
+          id: `edge-${relation.from}-${relation.to}-${index}`,
+          source: relation.from,
+          target: relation.to,
+          sourceHandle,
+          targetHandle,
+          label: relation.name,
+          type: 'smoothstep',
+          animated: true,
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 20,
+            height: 20,
+          },
+          style: { stroke: '#1890ff', strokeWidth: 2 },
+          labelStyle: { fontSize: 12, fill: '#666' },
+          labelBgStyle: { fill: '#fff', fillOpacity: 0.8 },
+        } as Edge;
+      });
+
+      setEdges(updatedEdges);
+    },
+    [relations, setEdges],
   );
 
-  const [nodes, setNodes, onNodesChange] = useNodesState<TableNode>(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(initialEdges);
+  // Custom node change handler that updates edges when nodes are dragged
+  const handleNodesChange = useCallback(
+    (changes: NodeChange<TableNode>[]) => {
+      onNodesChange(changes);
+
+      // Check if any node position is changing (during drag)
+      const hasPositionChange = changes.some(
+        (change) => change.type === 'position' && !change.dragging,
+      );
+      // console.log(changes);
+
+      if (hasPositionChange) {
+        console.log('asdsa');
+        updateEdgesBasedOnNodePositions(nodesMap);
+      }
+    },
+    [nodesMap, onNodesChange, updateEdgesBasedOnNodePositions],
+  );
 
   useEffect(() => {
     setNodes(initialNodes);
-    setEdges(initialEdges);
-  }, [initialNodes, initialEdges, setNodes, setEdges]);
+    updateEdgesBasedOnNodePositions(getNodesMap(initialNodes));
+  }, [initialNodes, setNodes, updateEdgesBasedOnNodePositions]);
 
   if (tables.length === 0) {
     return (
@@ -104,7 +180,7 @@ const Visualizer: FC<VisualizerProps> = ({ relations, tables }) => {
         nodeTypes={nodeTypes}
         fitView={true}
         nodesDraggable={true}
-        onNodesChange={onNodesChange}
+        onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
         defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
         minZoom={0.1}
