@@ -1,5 +1,14 @@
 import type { Table, Relation, Field } from '../types';
 
+// Regex patterns extracted as constants for better performance
+// These are compiled once and reused across all parseSchema calls
+const TABLE_REGEX = /CREATE\s+TABLE\s+(\w+)\s*\(([\s\S]*?)\)\s*;/gi;
+const FOREIGN_KEY_REGEX = /FOREIGN\s+KEY\s*\((\w+)\)\s+REFERENCES\s+(\w+)\s*\((\w+)\)/i;
+const PRIMARY_KEY_LINE_REGEX = /PRIMARY\s+KEY\s*\(/i;
+const PRIMARY_KEY_EXTRACT_REGEX = /PRIMARY\s+KEY\s*\(([^)]+)\)/i;
+const FIELD_DEFINITION_REGEX = /^(\w+)\s+([\w]+(?:\s*\([^)]+\))?)/i;
+const INLINE_PRIMARY_KEY_REGEX = /PRIMARY\s+KEY/i;
+
 /**
  * Parses a SQL schema string and extracts tables and relations
  */
@@ -10,11 +19,12 @@ export function parseSchema(schemaString: string): {
   const tables: Table[] = [];
   const relations: Relation[] = [];
 
-  // Match CREATE TABLE statements
-  const tableRegex = /CREATE\s+TABLE\s+(\w+)\s*\(([\s\S]*?)\);/gi;
+  // Reset regex state
+  TABLE_REGEX.lastIndex = 0;
+
   let match;
 
-  while ((match = tableRegex.exec(schemaString)) !== null) {
+  while ((match = TABLE_REGEX.exec(schemaString)) !== null) {
     const tableName = match[1];
     const tableBody = match[2];
 
@@ -29,7 +39,7 @@ export function parseSchema(schemaString: string): {
 
     for (const line of lines) {
       // Check for FOREIGN KEY constraint
-      const fkMatch = line.match(/FOREIGN\s+KEY\s*\((\w+)\)\s+REFERENCES\s+(\w+)\s*\((\w+)\)/i);
+      const fkMatch = line.match(FOREIGN_KEY_REGEX);
       if (fkMatch) {
         foreignKeys.push({
           field: fkMatch[1],
@@ -40,26 +50,38 @@ export function parseSchema(schemaString: string): {
       }
 
       // Check for PRIMARY KEY constraint (separate line)
-      if (/PRIMARY\s+KEY\s*\(/i.test(line)) {
-        const pkMatch = line.match(/PRIMARY\s+KEY\s*\(([^)]+)\)/i);
+      if (PRIMARY_KEY_LINE_REGEX.test(line)) {
+        const pkMatch = line.match(PRIMARY_KEY_EXTRACT_REGEX);
         if (pkMatch) {
           const pkFields = pkMatch[1].split(',').map((f) => f.trim());
-          fields.forEach((field) => {
-            if (pkFields.includes(field.name)) {
-              field.isPrimary = true;
+          // Optimize: use a Set only when beneficial (multiple primary keys)
+          if (pkFields.length > 1) {
+            const pkFieldSet = new Set(pkFields);
+            for (let i = 0; i < fields.length; i++) {
+              if (pkFieldSet.has(fields[i].name)) {
+                fields[i].isPrimary = true;
+              }
             }
-          });
+          } else if (pkFields.length === 1) {
+            // Single primary key - direct comparison
+            for (let i = 0; i < fields.length; i++) {
+              if (fields[i].name === pkFields[0]) {
+                fields[i].isPrimary = true;
+                break;
+              }
+            }
+          }
         }
         continue;
       }
 
       // Parse field definition
-      const fieldMatch = line.match(/^(\w+)\s+([\w()]+(?:\s*\(\d+(?:,\d+)?\))?)/i);
+      const fieldMatch = line.match(FIELD_DEFINITION_REGEX);
       if (fieldMatch) {
         const fieldName = fieldMatch[1];
         const fieldType = fieldMatch[2];
 
-        const isPrimary = /PRIMARY\s+KEY/i.test(line);
+        const isPrimary = INLINE_PRIMARY_KEY_REGEX.test(line);
 
         fields.push({
           name: fieldName,
@@ -70,24 +92,58 @@ export function parseSchema(schemaString: string): {
     }
 
     // Add foreign key information to fields and create relations
-    foreignKeys.forEach((fk) => {
-      const field = fields.find((f) => f.name === fk.field);
-      if (field) {
-        field.isForeign = true;
-        field.references = {
-          table: fk.refTable,
-          field: fk.refField,
-        };
-      }
+    // Optimize: use Map only when there are multiple foreign keys
+    if (foreignKeys.length > 0) {
+      if (foreignKeys.length > 3) {
+        // Use Map for faster lookups when there are many foreign keys
+        const fieldMap = new Map(fields.map((f) => [f.name, f]));
 
-      relations.push({
-        from: tableName,
-        to: fk.refTable,
-        fromField: fk.field,
-        toField: fk.refField,
-        name: `${fk.field} → ${fk.refTable}.${fk.refField}`,
-      });
-    });
+        for (let i = 0; i < foreignKeys.length; i++) {
+          const fk = foreignKeys[i];
+          const field = fieldMap.get(fk.field);
+
+          if (field) {
+            field.isForeign = true;
+            field.references = {
+              table: fk.refTable,
+              field: fk.refField,
+            };
+          }
+
+          relations.push({
+            from: tableName,
+            to: fk.refTable,
+            fromField: fk.field,
+            toField: fk.refField,
+            name: `${fk.field} → ${fk.refTable}.${fk.refField}`,
+          });
+        }
+      } else {
+        // Direct array search for few foreign keys
+        for (let i = 0; i < foreignKeys.length; i++) {
+          const fk = foreignKeys[i];
+
+          for (let j = 0; j < fields.length; j++) {
+            if (fields[j].name === fk.field) {
+              fields[j].isForeign = true;
+              fields[j].references = {
+                table: fk.refTable,
+                field: fk.refField,
+              };
+              break;
+            }
+          }
+
+          relations.push({
+            from: tableName,
+            to: fk.refTable,
+            fromField: fk.field,
+            toField: fk.refField,
+            name: `${fk.field} → ${fk.refTable}.${fk.refField}`,
+          });
+        }
+      }
+    }
 
     tables.push({
       id: tableName,

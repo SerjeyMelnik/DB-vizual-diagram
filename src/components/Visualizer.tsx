@@ -110,7 +110,7 @@ const Visualizer: FC<VisualizerProps> = ({ relations, tables }) => {
           targetHandle,
           label: relation.name,
           type: 'smoothstep',
-          animated: true,
+          animated: relations.length < 30, // Disabled for performance
           markerEnd: {
             type: MarkerType.ArrowClosed,
             width: 20,
@@ -132,14 +132,12 @@ const Visualizer: FC<VisualizerProps> = ({ relations, tables }) => {
     (changes: NodeChange<TableNode>[]) => {
       onNodesChange(changes);
 
-      // Check if any node position is changing (during drag)
-      const hasPositionChange = changes.some(
-        (change) => change.type === 'position' && !change.dragging,
+      // Only update edges after drag ends to reduce recalculations
+      const hasDragEnd = changes.some(
+        (change) => change.type === 'position' && change.dragging === false,
       );
-      // console.log(changes);
 
-      if (hasPositionChange) {
-        console.log('asdsa');
+      if (hasDragEnd) {
         updateEdgesBasedOnNodePositions(nodesMap);
       }
     },
@@ -186,6 +184,9 @@ const Visualizer: FC<VisualizerProps> = ({ relations, tables }) => {
         minZoom={0.1}
         maxZoom={2}
         attributionPosition="bottom-right"
+        // proOptions={{ hideAttribution: true }}
+        // elevateNodesOnSelect={false}
+        // elevateEdgesOnSelect={false}
         style={{
           backgroundColor: isDark ? '#141414' : '#f0f2f5',
         }}

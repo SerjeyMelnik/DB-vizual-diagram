@@ -6,14 +6,12 @@ import Visualizer from './components/Visualizer';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import { useAppStore } from './store/useAppStore';
-import { DEFAULT_SCHEMA_TEMPLATE } from './constants';
 import './App.css';
 
 function App() {
   const schemas = useAppStore((state) => state.schemas);
   const loadExampleSchemas = useAppStore((state) => state.loadExampleSchemas);
   const getCurrentSchema = useAppStore((state) => state.getCurrentSchema);
-  const setSchemaText = useAppStore((state) => state.setSchemaText);
 
   // Load schemas on mount if empty
   useEffect(() => {
@@ -24,7 +22,7 @@ function App() {
   }, []);
 
   const handleLoadExample = () => {
-    setSchemaText(DEFAULT_SCHEMA_TEMPLATE);
+    loadExampleSchemas();
   };
 
   const currentSchema = getCurrentSchema();

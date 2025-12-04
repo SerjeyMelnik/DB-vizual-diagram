@@ -1,6 +1,6 @@
 import { Card, Flex, Tag, Typography } from 'antd';
 import { Handle, Position } from '@xyflow/react';
-import type { FC } from 'react';
+import { memo, useMemo, type FC } from 'react';
 import type { Table } from '../types';
 import { useAppStore } from '../store/useAppStore';
 
@@ -8,27 +8,47 @@ interface TableNodeProps {
   data: Table;
 }
 
-const TableNode: FC<TableNodeProps> = ({ data }) => {
+const TableNode: FC<TableNodeProps> = memo(({ data }) => {
   const theme = useAppStore((state) => state.theme);
   const isDark = theme === 'dark';
+
+  // Memoize styles to prevent recalculation on every render
+  const cardStyle = useMemo(
+    () => ({
+      background: isDark ? '#1f1f1f' : 'white',
+      width: '300px',
+      boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.1)',
+    }),
+    [isDark],
+  );
+
+  const cardStyles = useMemo(
+    () => ({
+      body: { padding: '8px 12px' },
+      header: {
+        borderBottom: `2px solid ${isDark ? '#177ddc' : '#1890ff'}`,
+        background: isDark ? '#141414' : '#fafafa',
+      },
+    }),
+    [isDark],
+  );
+
+  const handleBaseStyle = useMemo(
+    () => ({
+      width: 10,
+      height: 10,
+      border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
+    }),
+    [isDark],
+  );
 
   return (
     <div style={{ position: 'relative' }}>
       <Card
         size="small"
         title={<Typography.Text strong>{data.name}</Typography.Text>}
-        style={{
-          background: isDark ? '#1f1f1f' : 'white',
-          width: '300px',
-          boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.1)',
-        }}
-        styles={{
-          body: { padding: '8px 12px' },
-          header: {
-            borderBottom: `2px solid ${isDark ? '#177ddc' : '#1890ff'}`,
-            background: isDark ? '#141414' : '#fafafa',
-          },
-        }}
+        style={cardStyle}
+        styles={cardStyles}
       >
         <Flex vertical>
           {data.fields.map((field, index) => (
@@ -50,25 +70,13 @@ const TableNode: FC<TableNodeProps> = ({ data }) => {
                     type="source"
                     position={Position.Left}
                     id={`${data.id}-${field.name}-source-left`}
-                    style={{
-                      left: -8,
-                      width: 10,
-                      height: 10,
-                      background: '#ff7a45',
-                      border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
-                    }}
+                    style={{ ...handleBaseStyle, left: -8, background: '#ff7a45' }}
                   />
                   <Handle
                     type="target"
                     position={Position.Left}
                     id={`${data.id}-${field.name}-target-left`}
-                    style={{
-                      left: -8,
-                      width: 10,
-                      height: 10,
-                      background: '#ff7a45',
-                      border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
-                    }}
+                    style={{ ...handleBaseStyle, left: -8, background: '#ff7a45' }}
                   />
                 </>
               )}
@@ -79,25 +87,13 @@ const TableNode: FC<TableNodeProps> = ({ data }) => {
                     type="target"
                     position={Position.Left}
                     id={`${data.id}-${field.name}-target-left`}
-                    style={{
-                      left: -8,
-                      width: 10,
-                      height: 10,
-                      background: '#1890ff',
-                      border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
-                    }}
+                    style={{ ...handleBaseStyle, left: -8, background: '#1890ff' }}
                   />
                   <Handle
                     type="source"
                     position={Position.Left}
                     id={`${data.id}-${field.name}-source-left`}
-                    style={{
-                      left: -8,
-                      width: 10,
-                      height: 10,
-                      background: '#1890ff',
-                      border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
-                    }}
+                    style={{ ...handleBaseStyle, left: -8, background: '#1890ff' }}
                   />
                 </>
               )}
@@ -109,25 +105,13 @@ const TableNode: FC<TableNodeProps> = ({ data }) => {
                     type="source"
                     position={Position.Right}
                     id={`${data.id}-${field.name}-source-right`}
-                    style={{
-                      right: -8,
-                      width: 10,
-                      height: 10,
-                      background: '#ff7a45',
-                      border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
-                    }}
+                    style={{ ...handleBaseStyle, right: -8, background: '#ff7a45' }}
                   />
                   <Handle
                     type="target"
                     position={Position.Right}
                     id={`${data.id}-${field.name}-target-right`}
-                    style={{
-                      right: -8,
-                      width: 10,
-                      height: 10,
-                      background: '#ff7a45',
-                      border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
-                    }}
+                    style={{ ...handleBaseStyle, right: -8, background: '#ff7a45' }}
                   />
                 </>
               )}
@@ -138,25 +122,13 @@ const TableNode: FC<TableNodeProps> = ({ data }) => {
                     type="target"
                     position={Position.Right}
                     id={`${data.id}-${field.name}-target-right`}
-                    style={{
-                      right: -8,
-                      width: 10,
-                      height: 10,
-                      background: '#1890ff',
-                      border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
-                    }}
+                    style={{ ...handleBaseStyle, right: -8, background: '#1890ff' }}
                   />
                   <Handle
                     type="source"
                     position={Position.Right}
                     id={`${data.id}-${field.name}-source-right`}
-                    style={{
-                      right: -8,
-                      width: 10,
-                      height: 10,
-                      background: '#1890ff',
-                      border: `2px solid ${isDark ? '#1f1f1f' : '#fff'}`,
-                    }}
+                    style={{ ...handleBaseStyle, right: -8, background: '#1890ff' }}
                   />
                 </>
               )}
@@ -179,6 +151,8 @@ const TableNode: FC<TableNodeProps> = ({ data }) => {
       </Card>
     </div>
   );
-};
+});
+
+TableNode.displayName = 'TableNode';
 
 export default TableNode;
