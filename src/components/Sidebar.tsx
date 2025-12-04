@@ -1,15 +1,13 @@
-import { Card, Flex, Input, Typography } from 'antd';
+import { Card, Input } from 'antd';
 import type { FC } from 'react';
+import { useAppStore } from '../store/useAppStore';
 
 const { TextArea } = Input;
-const { Text } = Typography;
 
-interface SidebarProps {
-  schemaText: string;
-  onSchemaTextChange: (text: string) => void;
-}
+const Sidebar: FC = () => {
+  const schemaText = useAppStore((state) => state.schemaText);
+  const setSchemaText = useAppStore((state) => state.setSchemaText);
 
-const Sidebar: FC<SidebarProps> = ({ schemaText, onSchemaTextChange }) => {
   return (
     <Card
       style={{
@@ -21,7 +19,7 @@ const Sidebar: FC<SidebarProps> = ({ schemaText, onSchemaTextChange }) => {
     >
       <TextArea
         value={schemaText}
-        onChange={(e) => onSchemaTextChange(e.target.value)}
+        onChange={(e) => setSchemaText(e.target.value)}
         placeholder="Enter SQL CREATE TABLE statements..."
         style={{
           fontFamily: 'monospace',

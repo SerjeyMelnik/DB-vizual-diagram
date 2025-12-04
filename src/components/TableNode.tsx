@@ -2,14 +2,14 @@ import { Card, Flex, Tag, Typography } from 'antd';
 import { Handle, Position } from '@xyflow/react';
 import type { FC } from 'react';
 import type { Table } from '../types';
-import { useTheme } from '../contexts/ThemeContext';
+import { useAppStore } from '../store/useAppStore';
 
 interface TableNodeProps {
   data: Table;
 }
 
 const TableNode: FC<TableNodeProps> = ({ data }) => {
-  const { theme } = useTheme();
+  const theme = useAppStore((state) => state.theme);
   const isDark = theme === 'dark';
 
   return (

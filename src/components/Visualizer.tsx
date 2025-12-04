@@ -15,7 +15,7 @@ import '@xyflow/react/dist/style.css';
 import { useEffect, useMemo, useCallback, type FC } from 'react';
 import type { Table, Relation } from '../types';
 import TableNode from './TableNode';
-import { useTheme } from '../contexts/ThemeContext';
+import { useAppStore } from '../store/useAppStore';
 
 interface VisualizerProps {
   tables: Table[];
@@ -68,7 +68,7 @@ const getOptimalHandles = (
 const getNodesMap = (nodes: TableNode[]) => new Map(nodes.map((node) => [node.id, node]));
 
 const Visualizer: FC<VisualizerProps> = ({ relations, tables }) => {
-  const { theme } = useTheme();
+  const theme = useAppStore((state) => state.theme);
 
   const initialNodes: TableNode[] = useMemo(
     () =>

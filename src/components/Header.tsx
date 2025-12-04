@@ -8,43 +8,38 @@ import {
 } from '@ant-design/icons';
 import type { FC } from 'react';
 import { useState } from 'react';
-import type { DatabaseSchema } from '../types';
 import { DEFAULT_SCHEMA_TEMPLATE } from '../constants';
-import { useTheme } from '../contexts/ThemeContext';
+import { useAppStore } from '../store/useAppStore';
 
 const { Text } = Typography;
 
 interface HeaderProps {
-  schemas: DatabaseSchema[];
-  currentSchemaId: string | null;
-  currentSchema: DatabaseSchema | undefined;
-  schemaText: string;
-  onSchemaChange: (schemaId: string) => void;
-  onSchemaCreate: (name: string, schema: string) => void;
-  onSchemaUpdate: (schemaId: string, schema: string) => void;
-  onSchemaDelete: (schemaId: string) => void;
-  onSchemaTextChange: (text: string) => void;
   onLoadExample: () => void;
 }
 
-const Header: FC<HeaderProps> = ({
-  schemas,
-  currentSchemaId,
-  currentSchema,
-  schemaText,
-  onSchemaChange,
-  onSchemaCreate,
-  onSchemaUpdate,
-  onSchemaDelete,
-  onSchemaTextChange,
-  onLoadExample,
-}) => {
+const Header: FC<HeaderProps> = ({ onLoadExample }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [newSchemaName, setNewSchemaName] = useState('');
-  const { theme, toggleTheme } = useTheme();
+
+  // Get state from Zustand store
+  const schemas = useAppStore((state) => state.schemas);
+  const currentSchemaId = useAppStore((state) => state.currentSchemaId);
+  const schemaText = useAppStore((state) => state.schemaText);
+  const theme = useAppStore((state) => state.theme);
+  const getCurrentSchema = useAppStore((state) => state.getCurrentSchema);
+
+  // Get actions from Zustand store
+  const changeSchema = useAppStore((state) => state.changeSchema);
+  const createSchema = useAppStore((state) => state.createSchema);
+  const updateSchema = useAppStore((state) => state.updateSchema);
+  const deleteSchema = useAppStore((state) => state.deleteSchema);
+  const setSchemaText = useAppStore((state) => state.setSchemaText);
+  const toggleTheme = useAppStore((state) => state.toggleTheme);
+
+  const currentSchema = getCurrentSchema();
 
   const handleSchemaSelect = (schemaId: string) => {
-    onSchemaChange(schemaId);
+    changeSchema(schemaId);
   };
 
   const handleSave = () => {
@@ -58,7 +53,7 @@ const Header: FC<HeaderProps> = ({
       return;
     }
 
-    onSchemaUpdate(currentSchemaId, schemaText);
+    updateSchema(currentSchemaId, schemaText);
     message.success('Schema updated successfully');
   };
 
@@ -69,9 +64,9 @@ const Header: FC<HeaderProps> = ({
     }
 
     const schemaContent = schemaText.trim() || DEFAULT_SCHEMA_TEMPLATE;
-    onSchemaCreate(newSchemaName, schemaContent);
+    createSchema(newSchemaName, schemaContent);
     setNewSchemaName('');
-    onSchemaTextChange(''); // Clear the schema text field after creating
+    setSchemaText(''); // Clear the schema text field after creating
     setIsModalVisible(false);
     message.success('Schema created successfully');
   };
@@ -89,7 +84,7 @@ const Header: FC<HeaderProps> = ({
       okType: 'danger',
       cancelText: 'Cancel',
       onOk: () => {
-        onSchemaDelete(currentSchemaId);
+        deleteSchema(currentSchemaId);
         message.success('Schema deleted successfully');
       },
     });
