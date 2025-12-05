@@ -1,7 +1,9 @@
+// WebWorker for schema parsing
+// This runs in a separate thread to avoid blocking the main UI
+
 import type { Table, Relation, Field } from '../types';
 
 // Regex patterns extracted as constants for better performance
-// These are compiled once and reused across all parseSchema calls
 const TABLE_REGEX = /CREATE\s+TABLE\s+(\w+)\s*\(([\s\S]*?)\)\s*;/gi;
 const FOREIGN_KEY_REGEX = /FOREIGN\s+KEY\s*\((\w+)\)\s+REFERENCES\s+(\w+)\s*\((\w+)\)/i;
 const PRIMARY_KEY_EXTRACT_REGEX = /PRIMARY\s+KEY\s*\(([^)]+)\)/i;
@@ -13,8 +15,9 @@ const FOREIGN_KEY_STR = 'FOREIGN KEY';
 
 /**
  * Parses a SQL schema string and extracts tables and relations
+ * Optimized version running in WebWorker
  */
-export function parseSchema(schemaString: string): {
+function parseSchema(schemaString: string): {
   tables: Table[];
   relations: Relation[];
 } {
@@ -162,33 +165,21 @@ export function parseSchema(schemaString: string): {
   return { tables, relations };
 }
 
-/**
- * Generate a unique ID
- */
-export function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
+// WebWorker message handler
+self.onmessage = (e: MessageEvent<{ type: string; schemaString?: string }>) => {
+  const { type, schemaString } = e.data;
 
-/**
- * Save schemas to localStorage
- */
-export function saveToLocalStorage(key: string, data: unknown): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch (error) {
-    console.error('Failed to save to localStorage:', error);
-  }
-}
+  if (type === 'parse' && schemaString) {
+    const startTime = performance.now();
+    const result = parseSchema(schemaString);
+    const endTime = performance.now();
 
-/**
- * Load schemas from localStorage
- */
-export function loadFromLocalStorage<T>(key: string, defaultValue: T): T {
-  try {
-    const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : defaultValue;
-  } catch (error) {
-    console.error('Failed to load from localStorage:', error);
-    return defaultValue;
+    self.postMessage({
+      type: 'result',
+      result,
+      executionTime: endTime - startTime,
+    });
   }
-}
+};
+
+export {};
