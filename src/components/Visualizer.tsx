@@ -5,6 +5,7 @@ import {
   ReactFlowProvider,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   MarkerType,
   Position,
   type Node,
@@ -16,6 +17,7 @@ import { useEffect, useMemo, useCallback, type FC } from 'react';
 import type { Table, Relation } from '../types';
 import TableNode from './TableNode';
 import { useAppStore } from '../store/useAppStore';
+import { calculateTableLayout } from '../utils/layoutUtils';
 
 interface VisualizerProps {
   tables: Table[];
@@ -67,21 +69,29 @@ const getOptimalHandles = (
 };
 const getNodesMap = (nodes: TableNode[]) => new Map(nodes.map((node) => [node.id, node]));
 
-const Visualizer: FC<VisualizerProps> = ({ relations, tables }) => {
+const VisualizerContent: FC<VisualizerProps> = ({ relations, tables }) => {
   const theme = useAppStore((state) => state.theme);
+  const { fitView } = useReactFlow();
 
-  const initialNodes: TableNode[] = useMemo(
-    () =>
-      tables.map((table, i) => ({
+  const initialNodes: TableNode[] = useMemo(() => {
+    const positions = calculateTableLayout(tables, {
+      horizontalSpacing: 400,
+      verticalSpacing: 450,
+      tablesPerRow: 3,
+    });
+
+    return tables.map((table, i) => {
+      const { x, y } = positions[i];
+      return {
         id: table.id,
         type: 'table',
-        position: { x: (i % 3) * 350, y: Math.floor(i / 3) * 350 },
+        position: { x, y },
         data: table,
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
-      })),
-    [tables],
-  );
+      };
+    });
+  }, [tables]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<TableNode>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -147,7 +157,11 @@ const Visualizer: FC<VisualizerProps> = ({ relations, tables }) => {
   useEffect(() => {
     setNodes(initialNodes);
     updateEdgesBasedOnNodePositions(getNodesMap(initialNodes));
-  }, [initialNodes, setNodes, updateEdgesBasedOnNodePositions]);
+    // Center view on nodes after they are set
+    setTimeout(() => {
+      fitView({ padding: 0.2, duration: 300 });
+    }, 0);
+  }, [initialNodes, setNodes, updateEdgesBasedOnNodePositions, fitView]);
 
   if (tables.length === 0) {
     return (
@@ -170,30 +184,41 @@ const Visualizer: FC<VisualizerProps> = ({ relations, tables }) => {
   const isDark = theme === 'dark';
 
   return (
+    <ReactFlow
+      className="visualiser-diagram"
+      nodes={nodes}
+      edges={edges}
+      nodeTypes={nodeTypes}
+      fitView={true}
+      nodesDraggable={true}
+      onNodesChange={handleNodesChange}
+      onEdgesChange={onEdgesChange}
+      defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+      minZoom={0.1}
+      maxZoom={2}
+      attributionPosition="bottom-right"
+      // proOptions={{ hideAttribution: true }}
+      // elevateNodesOnSelect={false}
+      // elevateEdgesOnSelect={false}
+      style={{
+        backgroundColor: isDark ? '#141414' : '#f0f2f5',
+      }}
+    >
+      <Background gap={16} size={1} color={isDark ? '#333' : '#ddd'} />
+      <Controls
+        showInteractive={true}
+        style={{ gap: 5 }}
+        fitViewOptions={{ duration: 300, padding: 0.2 }}
+        className={isDark ? 'dark' : ''}
+      />
+    </ReactFlow>
+  );
+};
+
+const Visualizer: FC<VisualizerProps> = (props) => {
+  return (
     <ReactFlowProvider>
-      <ReactFlow
-        className="visualiser-diagram"
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        fitView={true}
-        nodesDraggable={true}
-        onNodesChange={handleNodesChange}
-        onEdgesChange={onEdgesChange}
-        defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
-        minZoom={0.1}
-        maxZoom={2}
-        attributionPosition="bottom-right"
-        // proOptions={{ hideAttribution: true }}
-        // elevateNodesOnSelect={false}
-        // elevateEdgesOnSelect={false}
-        style={{
-          backgroundColor: isDark ? '#141414' : '#f0f2f5',
-        }}
-      >
-        <Background gap={16} size={1} color={isDark ? '#333' : '#ddd'} />
-        <Controls showInteractive={true} style={{ marginBottom: 40 }} />
-      </ReactFlow>
+      <VisualizerContent {...props} />
     </ReactFlowProvider>
   );
 };

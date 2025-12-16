@@ -20,6 +20,15 @@ function ThemedApp() {
         algorithm: theme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
         token: {
           colorPrimary: '#1890ff',
+          colorBgContainer: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+        },
+        components: {
+          Button: {
+            colorPrimary: theme === 'dark' ? '#1890ff' : '#1890ff',
+            colorPrimaryHover: theme === 'dark' ? '#40a9ff' : '#40a9ff',
+            colorPrimaryActive: theme === 'dark' ? '#096dd9' : '#096dd9',
+            primaryColor: theme === 'dark' ? '#fff' : '#fff',
+          },
         },
       }}
     >

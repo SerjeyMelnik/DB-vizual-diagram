@@ -103,10 +103,15 @@ export const useAppStore = create<AppState>()(
       changeSchema: (schemaId) => {
         const schema = get().schemas.find((s) => s.id === schemaId);
         if (schema) {
-          set({
+          // Re-parse the schema to ensure fresh visualization
+          const { tables, relations } = parseSchema(schema.schema);
+          set((state) => ({
             currentSchemaId: schemaId,
             schemaText: schema.schema,
-          });
+            schemas: state.schemas.map((s) =>
+              s.id === schemaId ? { ...s, tables, relations } : s,
+            ),
+          }));
         }
       },
 

@@ -19,6 +19,7 @@ interface HeaderProps {
 
 const Header: FC<HeaderProps> = ({ onLoadExample }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [newSchemaName, setNewSchemaName] = useState('');
 
   // Get state from Zustand store
@@ -33,7 +34,6 @@ const Header: FC<HeaderProps> = ({ onLoadExample }) => {
   const createSchema = useAppStore((state) => state.createSchema);
   const updateSchema = useAppStore((state) => state.updateSchema);
   const deleteSchema = useAppStore((state) => state.deleteSchema);
-  const setSchemaText = useAppStore((state) => state.setSchemaText);
   const toggleTheme = useAppStore((state) => state.toggleTheme);
 
   const currentSchema = getCurrentSchema();
@@ -63,31 +63,27 @@ const Header: FC<HeaderProps> = ({ onLoadExample }) => {
       return;
     }
 
-    const schemaContent = schemaText.trim() || DEFAULT_SCHEMA_TEMPLATE;
-    createSchema(newSchemaName, schemaContent);
+    // Create new schema with default template (empty schema)
+    createSchema(newSchemaName, DEFAULT_SCHEMA_TEMPLATE);
     setNewSchemaName('');
-    setSchemaText(''); // Clear the schema text field after creating
     setIsModalVisible(false);
     message.success('Schema created successfully');
   };
 
-  const handleDelete = () => {
+  const handleDeleteClick = () => {
     if (!currentSchemaId) {
       message.warning('No schema selected');
       return;
     }
+    setIsDeleteModalVisible(true);
+  };
 
-    Modal.confirm({
-      title: 'Delete Schema',
-      content: 'Are you sure you want to delete this schema?',
-      okText: 'Delete',
-      okType: 'danger',
-      cancelText: 'Cancel',
-      onOk: () => {
-        deleteSchema(currentSchemaId);
-        message.success('Schema deleted successfully');
-      },
-    });
+  const handleDeleteConfirm = () => {
+    if (currentSchemaId) {
+      deleteSchema(currentSchemaId);
+      setIsDeleteModalVisible(false);
+      message.success('Schema deleted successfully');
+    }
   };
 
   const isDark = theme === 'dark';
@@ -140,7 +136,7 @@ const Header: FC<HeaderProps> = ({ onLoadExample }) => {
               Load Example
             </Button>
             {currentSchemaId && (
-              <Button danger icon={<DeleteOutlined />} onClick={handleDelete}>
+              <Button danger icon={<DeleteOutlined />} onClick={handleDeleteClick}>
                 Delete
               </Button>
             )}
@@ -187,6 +183,18 @@ const Header: FC<HeaderProps> = ({ onLoadExample }) => {
             onPressEnter={handleCreateNew}
           />
         </Space>
+      </Modal>
+
+      <Modal
+        title="Delete Schema"
+        open={isDeleteModalVisible}
+        onOk={handleDeleteConfirm}
+        onCancel={() => setIsDeleteModalVisible(false)}
+        okText="Delete"
+        okType="danger"
+        cancelText="Cancel"
+      >
+        <Text>Are you sure you want to delete this schema?</Text>
       </Modal>
     </>
   );
